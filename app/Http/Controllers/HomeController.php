@@ -1,0 +1,216 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+
+use App\Models\Setting;
+use App\Models\Project;
+
+use Auth;
+
+class HomeController extends Controller
+{
+    /**
+     * Create a new controller instance.
+     *
+     * @return void
+     */
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
+    /**
+     * Show the application dashboard.
+     *
+     * @return \Illuminate\Contracts\Support\Renderable
+     */
+    public function index()
+    {
+        config(['site.page' => 'home']);
+        ini_set('max_execution_time', '0');
+        $this->loadProjects();
+        $project_count = Project::count();
+        $client_count = $this->getClientCount();
+        $hours_tracked = Project::sum('tracked');
+        // $billable = Project::where('tracked', '>', 0)->avg('billable');
+        $billable = $this->getBillable();
+        $data = Project::all();
+        return view('home', compact('data', 'project_count', 'client_count', 'hours_tracked', 'billable'));
+    }
+
+    public function loadProjects() {
+        $setting = Setting::find(1);
+        $curl = curl_init();
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => "https://api.harvestapp.com/v2/projects",
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "GET",
+            CURLOPT_HTTPHEADER => array(
+                "Harvest-Account-Id: ".$setting->account_id,
+                "Authorization: Bearer ".$setting->access_token,
+                "User-Agent: MyApp (motiwildweb@gmail.com)",
+            ),
+        ));
+        
+        $response = json_decode(curl_exec($curl), true);
+        curl_close($curl);
+
+        // dd($response);
+
+        $projects = $response['projects'];
+        foreach ($projects as $item) {
+            $project = Project::where('project_id', $item['id'])->first();
+            $created_at = str_replace('T', ' ', str_replace('Z', '', $item['created_at']));
+            $updated_at = str_replace('T', ' ', str_replace('Z', '', $item['updated_at']));
+            if($project) {
+                if($project->updated_at != $updated_at) {
+                    $project->update([
+                        'name' => $item['name'],
+                        'client_name' => $item['client']['name'],
+                        'start_date' => $created_at,
+                        'budget' => $item['budget'],
+                        'project_created_at' => $created_at,
+                        'project_updated_at' => $updated_at,
+                    ]);
+                }
+            } else {
+                $project = Project::create([
+                        'project_id' => $item['id'],
+                        'name' => $item['name'],
+                        'client_name' => $item['client']['name'],
+                        'start_date' => $item['starts_on'],
+                        'budget' => $item['budget'],
+                        'project_created_at' => $created_at,
+                        'project_updated_at' => $updated_at,
+                    ]);
+            }
+            $tracked_data = $this->getTrackedHours($project->project_id);
+            if($tracked_data['tracked_hours'] > 0) {
+                $billable = $tracked_data['billable_hours'] / $tracked_data['tracked_hours'] * 100;
+            } else {
+                $billable = 0;
+            }
+            $project->update([
+                'tracked' => $tracked_data['tracked_hours'],
+                'billable' => $billable,
+            ]);
+        }
+    }
+
+    public function getTrackedHours($project_id) {
+        $setting = Setting::find(1);
+        $curl = curl_init();
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => "https://api.harvestapp.com/v2/time_entries?project_id=".$project_id,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "GET",
+            CURLOPT_HTTPHEADER => array(
+            "Harvest-Account-Id: ".$setting->account_id,
+            "Authorization: Bearer ".$setting->access_token,
+            "User-Agent: MyApp (motiwildweb@gmail.com)",
+            ),
+        ));
+
+        $response = json_decode(curl_exec($curl), true);
+        curl_close($curl);
+        $collection = collect($response['time_entries']);
+        $tracked_hours = $collection->sum('hours');
+        $billable_hours = $collection->where('billable', true)->sum('hours');
+        $data = [
+            'tracked_hours' => $tracked_hours,
+            'billable_hours' => $billable_hours,
+        ];
+        return $data;
+    }
+
+    public function getBillable() {
+        $setting = Setting::find(1);
+        $curl = curl_init();
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => "https://api.harvestapp.com/v2/reports/time/projects?from=20200101&to=20201231",
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "GET",
+            CURLOPT_HTTPHEADER => array(
+            "Harvest-Account-Id: ".$setting->account_id,
+            "Authorization: Bearer ".$setting->access_token,
+            "User-Agent: MyApp (motiwildweb@gmail.com)",
+            ),
+        ));
+
+        $response = json_decode(curl_exec($curl), true);
+        curl_close($curl);
+        $collection = collect($response['results']);
+        $total_hours = $collection->sum('total_hours');
+        $billable_hours = $collection->sum('billable_hours');
+        $billable = intval($billable_hours / $total_hours * 100);
+        return $billable;
+    }
+
+    public function getClientCount() {
+        $setting = Setting::find(1);
+        $curl = curl_init();
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => "https://api.harvestapp.com/v2/clients",
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "GET",
+            CURLOPT_HTTPHEADER => array(
+                "Harvest-Account-Id: ".$setting->account_id,
+                "Authorization: Bearer ".$setting->access_token,
+                "User-Agent: MyApp (motiwildweb@gmail.com)",
+            ),
+        ));
+
+        $response = json_decode(curl_exec($curl), true);
+
+        curl_close($curl);
+
+        return count($response['clients']);
+    }
+
+    public function project_update(Request $request) {
+        $project = Project::find($request->get('id'));
+        $field = $request->get('field');
+        $value = $request->get('value');
+        $project->update([
+            $field => $value,
+        ]);
+        return response()->json(['status' => 200, 'data' => $project]);
+    }
+
+    public function setting() {
+        config(['site.page' => 'setting']);
+        $setting = Setting::find(1);
+        return view('setting', compact('setting'));
+    }
+
+    public function setting_update(Request $request) {
+        $setting = Setting::find(1);
+        $setting->update([
+            'account_id' => $request->get('account_id'),
+            'access_token' => $request->get('access_token'),
+        ]);
+        return back()->with('success', 'Updated Successfully');
+    }
+}
