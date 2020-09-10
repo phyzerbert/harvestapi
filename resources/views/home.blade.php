@@ -143,6 +143,7 @@
             $("#project_table").DataTable({
                 'lengthChange': false,
                 'info' : false,
+                'pageLength' : 25,
             });
             $(document).on('change', '#project_table .owner', function(){
                 let id = $(this).data('id');
