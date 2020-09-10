@@ -44,7 +44,7 @@ class HomeController extends Controller
         $setting = Setting::find(1);
         $curl = curl_init();
         curl_setopt_array($curl, array(
-            CURLOPT_URL => "https://api.harvestapp.com/v2/projects",
+            CURLOPT_URL => "https://api.harvestapp.com/v2/projects?is_active=true",
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => "",
             CURLOPT_MAXREDIRS => 10,
@@ -92,14 +92,9 @@ class HomeController extends Controller
                     ]);
             }
             $tracked_data = $this->getTrackedHours($project->project_id);
-            if($tracked_data['tracked_hours'] > 0) {
-                $billable = $tracked_data['billable_hours'] / $tracked_data['tracked_hours'] * 100;
-            } else {
-                $billable = 0;
-            }
+            
             $project->update([
                 'tracked' => $tracked_data['tracked_hours'],
-                'billable' => $billable,
             ]);
         }
     }

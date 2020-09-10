@@ -22,7 +22,7 @@
         <div class="col-md-2 col-sm-6">
             <div class="card card-body text-center">
                 <h1>{{$client_count}}</h1>
-                <h5>Clients</h5>
+                <h5>Distinct Count</h5>
             </div>
         </div>
         <div class="col-md-2 col-sm-6">
