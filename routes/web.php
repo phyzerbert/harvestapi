@@ -36,6 +36,8 @@ Route::get('/owner/delete/{id}', 'OwnerController@destroy')->name('owner.delete'
 Route::get('/setting/index', 'HomeController@setting')->name('setting.index');
 Route::post('/setting/update', 'HomeController@setting_update')->name('setting.update');
 
+Route::get('/gethourstracked', 'HomeController@getHoursTracked');
+
 
 
 

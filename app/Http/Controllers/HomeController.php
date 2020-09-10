@@ -8,6 +8,7 @@ use App\Models\Setting;
 use App\Models\Project;
 
 use Auth;
+use Carbon\Carbon;
 
 class HomeController extends Controller
 {
@@ -33,7 +34,7 @@ class HomeController extends Controller
         $this->loadProjects();
         $project_count = Project::count();
         $client_count = $this->getClientCount();
-        $hours_tracked = Project::sum('tracked');
+        $hours_tracked = $this->getHoursTracked();
         // $billable = Project::where('tracked', '>', 0)->avg('billable');
         $billable = $this->getBillable();
         $data = Project::where('is_hidden', 0)->get();
@@ -134,7 +135,7 @@ class HomeController extends Controller
         $setting = Setting::find(1);
         $curl = curl_init();
         curl_setopt_array($curl, array(
-            CURLOPT_URL => "https://api.harvestapp.com/v2/reports/time/projects?from=20200101&to=20201231",
+            CURLOPT_URL => "https://api.harvestapp.com/v2/reports/time/projects?from=20190101&to=20221231",
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => "",
             CURLOPT_MAXREDIRS => 10,
@@ -156,6 +157,34 @@ class HomeController extends Controller
         $billable_hours = $collection->sum('billable_hours');
         $billable = intval($billable_hours / $total_hours * 100);
         return $billable;
+    }
+
+    public function getHoursTracked() {
+        $setting = Setting::find(1);
+        $start_month = Carbon::now()->startOfMonth()->format('Ymd');
+        $end_month = Carbon::now()->endOfMonth()->format('Ymd');
+        $curl = curl_init();
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => "https://api.harvestapp.com/v2/reports/time/projects?from=$start_month&to=$end_month",
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "GET",
+            CURLOPT_HTTPHEADER => array(
+            "Harvest-Account-Id: ".$setting->account_id,
+            "Authorization: Bearer ".$setting->access_token,
+            "User-Agent: MyApp (motiwildweb@gmail.com)",
+            ),
+        ));
+
+        $response = json_decode(curl_exec($curl), true);
+        curl_close($curl);
+        $collection = collect($response['results']);
+        $total_hours = $collection->sum('total_hours');
+        return $total_hours;
     }
 
     public function getClientCount() {
