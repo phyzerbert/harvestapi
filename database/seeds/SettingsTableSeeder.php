@@ -15,8 +15,8 @@ class SettingsTableSeeder extends Seeder
     public function run()
     {
         Setting::create([
-            'account_id' => '1341550',
-            'access_token' => '2407330.pt.E8ee9UROoS4cBSEBhBx8BmoghJCUp0nOvX5uKm0eW8ujvJ1i6ZRM9j4ThcPGF3Kt6UpwNLmYXZIOW5uDNqFHBg',
+            'account_id' => '923363',
+            'access_token' => '1583543.pt.A9d-BczVfNFKI9WLKmBkxXvTsTy9pzm3p36ebG1TUjdvnUHcukCRBbx-2_FcBsTMByRNcADdJByVZ_vvrgMMjA',
         ]);
 
         $owner_array = ['Moti', 'Ben', 'Avital', 'Shira', 'Mor'];
