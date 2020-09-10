@@ -7,6 +7,7 @@
             <title>{{config('app.name')}}</title>
             <!-- Main CSS-->
             <link rel="stylesheet" href="{{ asset('css/bootstrap.min.css') }}">
+            <link rel="stylesheet" href="{{ asset('css/style.css') }}">
             {{-- <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">     --}}
             @yield('style')
     </head>

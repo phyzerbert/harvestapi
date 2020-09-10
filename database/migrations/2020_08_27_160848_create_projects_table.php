@@ -26,6 +26,7 @@ class CreateProjectsTable extends Migration
             $table->date('deadline')->nullable();
             $table->integer('health')->nullable();
             $table->text('status')->nullable();
+            $table->boolean('is_hidden')->default(0);
             $table->timestamp('project_created_at')->nullable();
             $table->timestamp('project_updated_at')->nullable();
             $table->timestamps();

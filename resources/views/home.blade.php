@@ -10,6 +10,8 @@
             padding: 5px 3px;
         }
     </style>
+    {{-- <link rel="stylesheet" href="{{asset('plugins/DataTables/css/jquery.dataTables.min.css')}}"> --}}
+    <link rel="stylesheet" href="{{asset('plugins/DataTables/css/dataTables.bootstrap4.min.css')}}">
 @endsection
 @section('content')
 @php
@@ -48,17 +50,16 @@
             </div>
         </div>
     </div>
-    <div class="row mt-3">
+    <div class="row mt-3 mb-5">
         <div class="col-12 table-responsive">
             <table class="table table-bordered" id="project_table">
                 <thead>
                     <tr>
-                        <th>No</th>
                         <th>Client Name</th>
                         <th>Project Name</th>
                         <th style="width:110px;">Start Date</th>
                         <th>Project Budget</th>
-                        <th>Hourly Tracked</th>
+                        <th>Hours Tracked</th>
                         <th>Difference</th>
                         <th>Project Life</th>
                         <th>Project Owner</th>
@@ -81,13 +82,21 @@
                                                
                         @endphp
                         <tr>
-                            <td width="40" class="text-center">{{$loop->index + 1}}</td>
                             <td>{{$item->client_name}}</td>
-                            <td>{{$item->name}}</td>
-                            <td>{{$item->start_date}}</td>
-                            <td>@if($item->budget){{$item->budget}} Hours @endif</td>
-                            <td>{{$item->tracked}} Hours</td>
-                            <td class="@if($difference < 0) text-danger @endif">{{$difference}} Hours</td>
+                            <td>
+                                {{$item->name}}
+                                @if (Auth::user()->role == 'admin')
+                                    <a href="javascript:;" class="btn btn-link btn-hide" data-id="{{$item->id}}">Hide</a>
+                                @endif
+                            </td>
+                            <td>
+                                @if ($item->start_date != '')
+                                    {{date('d/m/Y', strtotime($item->start_date))}}
+                                @endif                                
+                            </td>
+                            <td>@if($item->budget){{$item->budget}} @endif</td>
+                            <td>{{$item->tracked}}</td>
+                            <td class="@if($difference < 0) text-danger @endif">{{$difference}}</td>
                             <td>{{$life}} Days</td>
                             <td class="px-1">
                                 <select class="form-control owner" data-id="{{$item->id}}">
@@ -127,27 +136,33 @@
 </div>
 @endsection
 @section('script')
+    <script src="{{asset('plugins/DataTables/js/jquery.dataTables.min.js')}}"></script>
+    <script src="{{asset('plugins/DataTables/js/dataTables.bootstrap4.min.js')}}"></script>
     <script>
         $(document).ready(function () {
-            $('#project_table .owner').change(function(){
+            $("#project_table").DataTable({
+                'lengthChange': false,
+                'info' : false,
+            });
+            $(document).on('change', '#project_table .owner', function(){
                 let id = $(this).data('id');
                 let value = $(this).val();
                 change_project(id, 'owner_id', value);
             });
 
-            $('#project_table .health').change(function(){
+            $(document).on('change', '#project_table .health', function(){
                 let id = $(this).data('id');
                 let value = $(this).val();
                 change_project(id, 'health', value);
             });
 
-            $('#project_table .deadline').change(function(){
+            $(document).on('change', '#project_table .deadline', function(){
                 let id = $(this).data('id');
                 let value = $(this).val();
                 change_project(id, 'deadline', value);
             });
 
-            $('#project_table .status').change(function(){
+            $(document).on('change', '#project_table .status', function(){
                 let id = $(this).data('id');
                 let value = $(this).val();
                 change_project(id, 'status', value);
@@ -173,6 +188,23 @@
                     }
                 })
             }
+
+            $(document).on('click', '#project_table .btn-hide', function(){
+                if(!window.confirm('Are you sure?')){
+                    return false;
+                }
+                let id = $(this).data('id');
+                let _token = "{{csrf_token()}}";
+                let project_row = $(this).parents('tr');
+                $.ajax({
+                    url: '/project/update',
+                    method: 'POST',
+                    data: {_token: _token, id: id, field: 'is_hidden', value: 1},
+                    success(response) {
+                        project_row.remove();
+                    }
+                });
+            });
 
 
 

@@ -21,6 +21,7 @@ Route::get('auth/google', 'Auth\GoogleController@redirectToGoogle');
 Route::get('auth/google/callback', 'Auth\GoogleController@handleGoogleCallback');
 
 Route::any('/home', 'HomeController@index')->name('home');
+Route::any('/projects/hidden', 'HomeController@hidden_projects')->name('hidden_projects');
 Route::post('/project/update', 'HomeController@project_update')->name('project.update');
 
 Route::get('/user/index', 'UserController@index')->name('user.index');

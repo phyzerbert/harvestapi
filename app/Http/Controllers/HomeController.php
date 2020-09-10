@@ -36,7 +36,7 @@ class HomeController extends Controller
         $hours_tracked = Project::sum('tracked');
         // $billable = Project::where('tracked', '>', 0)->avg('billable');
         $billable = $this->getBillable();
-        $data = Project::all();
+        $data = Project::where('is_hidden', 0)->get();
         return view('home', compact('data', 'project_count', 'client_count', 'hours_tracked', 'billable'));
     }
 
@@ -197,6 +197,11 @@ class HomeController extends Controller
             $field => $value,
         ]);
         return response()->json(['status' => 200, 'data' => $project]);
+    }
+
+    public function hidden_projects(Request $request) {
+        $data = Project::where('is_hidden', 1)->get();
+        return view('hidden_projects', compact('data'));
     }
 
     public function setting() {
