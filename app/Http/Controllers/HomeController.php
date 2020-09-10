@@ -65,7 +65,7 @@ class HomeController extends Controller
 
         // dd($response);
 
-        $projects = $response['projects'];
+        $projects = $response['projects']; 
         foreach ($projects as $item) {
             $project = Project::where('project_id', $item['id'])->first();
             $created_at = str_replace('T', ' ', str_replace('Z', '', $item['created_at']));
@@ -135,7 +135,7 @@ class HomeController extends Controller
         $setting = Setting::find(1);
         $curl = curl_init();
         curl_setopt_array($curl, array(
-            CURLOPT_URL => "https://api.harvestapp.com/v2/reports/time/projects?from=20190101&to=20221231",
+            CURLOPT_URL => "https://api.harvestapp.com/v2/reports/time/projects?from=20200101&to=20201231",
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => "",
             CURLOPT_MAXREDIRS => 10,

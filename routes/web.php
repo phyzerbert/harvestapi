@@ -37,6 +37,7 @@ Route::get('/setting/index', 'HomeController@setting')->name('setting.index');
 Route::post('/setting/update', 'HomeController@setting_update')->name('setting.update');
 
 Route::get('/gethourstracked', 'HomeController@getHoursTracked');
+Route::get('/getbillable', 'HomeController@getBillable');
 
 
 
