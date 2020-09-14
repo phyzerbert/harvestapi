@@ -32,12 +32,12 @@ class HomeController extends Controller
         config(['site.page' => 'home']);
         ini_set('max_execution_time', '0');
         $this->loadProjects();
-        $project_count = Project::where('is_hidden', '!=', 1)->count();
+        $project_count = Project::where('is_active', 1)->where('is_hidden', '!=', 1)->count();
         $client_count = $this->getClientCount();
         $hours_tracked = $this->getHoursTracked();
         // $billable = Project::where('tracked', '>', 0)->avg('billable');
         $billable = $this->getBillable();
-        $data = Project::where('is_hidden', 0)->get();
+        $data = Project::where('is_hidden', 0)->where('is_active', 1)->get();
         return view('home', compact('data', 'project_count', 'client_count', 'hours_tracked', 'billable'));
     }
 
@@ -45,7 +45,7 @@ class HomeController extends Controller
         $setting = Setting::find(1);
         $curl = curl_init();
         curl_setopt_array($curl, array(
-            CURLOPT_URL => "https://api.harvestapp.com/v2/projects?is_active=true",
+            CURLOPT_URL => "https://api.harvestapp.com/v2/projects",
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => "",
             CURLOPT_MAXREDIRS => 10,
@@ -88,6 +88,7 @@ class HomeController extends Controller
                         'client_name' => $item['client']['name'],
                         'start_date' => $item['starts_on'],
                         'budget' => $item['budget'],
+                        'is_active' => $item['is_active'] ? 1 : 0,
                         'project_created_at' => $created_at,
                         'project_updated_at' => $updated_at,
                     ]);
@@ -95,6 +96,7 @@ class HomeController extends Controller
             $tracked_data = $this->getTrackedHours($project->project_id);
             
             $project->update([
+                'is_active' => $item['is_active'] ? 1 : 0,
                 'tracked' => $tracked_data['tracked_hours'],
             ]);
         }
