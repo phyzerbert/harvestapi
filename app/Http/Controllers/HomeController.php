@@ -178,8 +178,8 @@ class HomeController extends Controller
 
     public function getHoursTracked() {
         $setting = Setting::find(1);
-        $start_month = Carbon::now()->startOfMonth()->format('Ymd');
-        $end_month = Carbon::now()->endOfMonth()->format('Ymd');
+        $start_month = Carbon::now()->startOfMonth()->format('Y-m-d');
+        $end_month = Carbon::now()->endOfMonth()->format('Y-m-d');
         $curl = curl_init();
         curl_setopt_array($curl, array(
             CURLOPT_URL => "https://api.harvestapp.com/v2/reports/time/projects?from=$start_month&to=$end_month",
@@ -200,7 +200,8 @@ class HomeController extends Controller
         $response = json_decode(curl_exec($curl), true);
         curl_close($curl);
         $collection = collect($response['results']);
-        $total_hours = $collection->sum('total_hours');
+        $available_projects = Project::where('is_active', 1)->where('is_hidden', '!=', 1)->pluck('project_id')->toArray();
+        $total_hours = $collection->whereIn('project_id', $available_projects)->sum('total_hours');
         return $total_hours;
     }
 
