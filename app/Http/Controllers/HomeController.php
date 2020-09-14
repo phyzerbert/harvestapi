@@ -32,7 +32,7 @@ class HomeController extends Controller
         config(['site.page' => 'home']);
         ini_set('max_execution_time', '0');
         $this->loadProjects();
-        $project_count = Project::count();
+        $project_count = Project::where('is_hidden', '!=', 1)->count();
         $client_count = $this->getClientCount();
         $hours_tracked = $this->getHoursTracked();
         // $billable = Project::where('tracked', '>', 0)->avg('billable');
